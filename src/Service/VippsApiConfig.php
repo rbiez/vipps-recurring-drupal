@@ -8,126 +8,351 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\vipps_recurring_payments\Form\SettingsForm;
 use Drupal\Core\Url;
 
+/**
+ * Class VippsApiConfig. Stores all config data and functions.
+ *
+ * @package Drupal\vipps_recurring_payments\Service
+ */
 class VippsApiConfig {
 
-  private const access_token_path = '/accessToken/get';
+  /**
+   * Access token path.
+   */
+  private const ACCESS_TOKEN_PATH = '/accesstoken/get';
 
-  private const draft_agreement_path = '/recurring/v2/agreements';
+  /**
+   * Draft agreement path.
+   */
+  private const DRAFT_AGREEMENT_PATH = '/recurring/v3/agreements';
 
+  /**
+   * Config factory.
+   *
+   * @var \Drupal\Core\Config\Config
+   */
   protected $configFactory;
 
+  /**
+   * MSN.
+   *
+   * @var string
+   */
   protected $msn;
 
-  protected $access_token;
+  /**
+   * Subscription key.
+   *
+   * @var string
+   */
+  protected $subscriptionKey;
 
-  protected $subscription_key;
+  /**
+   * Client id.
+   *
+   * @var string
+   */
+  protected $clientId;
 
-  protected $client_id;
+  /**
+   * Client secret.
+   *
+   * @var string
+   */
+  protected $clientSecret;
 
-  protected $client_secret;
+  /**
+   * Test mode.
+   *
+   * @var bool
+   */
+  protected $testMode;
 
-  protected $test_mode;
+  /**
+   * Merchant agreement URL.
+   *
+   * @var string
+   */
+  private $merchantAgreementUrl;
 
+  /**
+   * VippsApiConfig constructor.
+   *
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
+   *   Config factory.
+   */
   public function __construct(ConfigFactoryInterface $configFactory) {
-
     $this->configFactory = $configFactory->getEditable(SettingsForm::SETTINGS);
     $this->initializeAttributes();
   }
 
+  /**
+   * Get MSN.
+   *
+   * @return string
+   *   MSN.
+   */
   public function getMsn():string {
     return $this->msn;
   }
 
-  public function getAccessToken():string {
-    return $this->access_token;
-  }
-
+  /**
+   * Get subscription key.
+   *
+   * @return string
+   *   Subscription key.
+   */
   public function getSubscriptionKey():string {
-    return $this->subscription_key;
+    return $this->subscriptionKey;
   }
 
+  /**
+   * Get client id.
+   *
+   * @return string
+   *   Client id.
+   */
   public function getClientId():string {
-    return $this->client_id;
+    return $this->clientId;
   }
 
+  /**
+   * Get client secret.
+   *
+   * @return string
+   *   Client secret.
+   */
   public function getClientSecret():string {
-    return $this->client_secret;
+    return $this->clientSecret;
   }
 
+  /**
+   * Get base URL.
+   *
+   * @return string
+   *   URL.
+   */
   public function getBaseUrl():string {
     return $this->isTest() ? 'https://apitest.vipps.no' : 'https://api.vipps.no';
   }
 
+  /**
+   * Get merchant redirect URL.
+   *
+   * @param array $params
+   *   Parameters array.
+   *
+   * @return string
+   *   URL.
+   */
   public function getMerchantRedirectUrl(array $params = []):string {
     $urlObject = Url::fromRoute('vipps_recurring_payments.confirm_agreement', $params, ['absolute' => TRUE]);
     return $urlObject->toString();
   }
 
+  /**
+   * Get merchant agreement URL.
+   *
+   * @param array $params
+   *   Parameters array.
+   *
+   * @return string
+   *   URL.
+   */
   public function getMerchantAgreementUrl(array $params = []):string {
-    $urlObject = Url::fromRoute('vipps_recurring_payments.merchant_agreement', $params, ['absolute' => TRUE]);
-    return $urlObject->toString();
+    return $this->merchantAgreementUrl;
   }
 
+  /**
+   * Get the access token URL.
+   *
+   * @return string
+   *   URL.
+   */
   public function getAccessTokenRequestUrl():string {
-    return $this->generateUrl(self::access_token_path);
+    return $this->generateUrl(self::ACCESS_TOKEN_PATH);
   }
 
+  /**
+   * Get the URL to draft the agreement.
+   *
+   * @return string
+   *   URL.
+   */
   public function getDraftAgreementRequestUrl():string {
-    return $this->generateUrl(self::draft_agreement_path);
+    return $this->generateUrl(self::DRAFT_AGREEMENT_PATH);
   }
 
+  /**
+   * Get the charge URL.
+   *
+   * @param string $orderId
+   *   The order id.
+   *
+   * @return string
+   *   URL.
+   */
   public function getCreateChargeUrl(string $orderId):string {
-    return $this->generateUrl(sprintf("/recurring/v2/agreements/%s/charges", $orderId));
+    return $this->generateUrl(sprintf("/recurring/v3/agreements/%s/charges", $orderId));
   }
 
+  /**
+   * Get the retrieve agreement URL.
+   *
+   * @param string $agreementId
+   *   Agreement id.
+   *
+   * @return string
+   *   URL.
+   */
   public function getRetrieveAgreementUrl(string $agreementId):string {
-    return $this->generateUrl(sprintf("/recurring/v2/agreements/%s", $agreementId));
+    return $this->generateUrl(sprintf("/recurring/v3/agreements/%s", $agreementId));
   }
 
+  /**
+   * Get the retrieve charges URL.
+   *
+   * @param string $agreementId
+   *   Agreement id.
+   *
+   * @return string
+   *   URL.
+   */
   public function getRetrieveChargesUrl(string $agreementId):string {
-    return $this->generateUrl(sprintf("/recurring/v2/agreements/%s/charges", $agreementId));
+    return $this->generateUrl(sprintf("/recurring/v3/agreements/%s/charges", $agreementId));
   }
 
+  /**
+   * Get the URL to update agreement.
+   *
+   * @param string $agreementId
+   *   Agreement id.
+   *
+   * @return string
+   *   URL.
+   */
   public function getUpdateAgreementUrl(string $agreementId):string {
-    return $this->generateUrl(sprintf("/recurring/v2/agreements/%s", $agreementId));
+    return $this->generateUrl(sprintf("/recurring/v3/agreements/%s", $agreementId));
   }
 
+  /**
+   * Get the charge URL.
+   *
+   * @param string $agreementId
+   *   Agreement id.
+   * @param string $chargeId
+   *   Charge id.
+   *
+   * @return string
+   *   URL.
+   */
   public function getChargeUrl(string $agreementId, string $chargeId):string {
-    return $this->generateUrl(sprintf("/recurring/v2/agreements/%s/charges/%s", $agreementId, $chargeId));
+    return $this->generateUrl(sprintf("/recurring/v3/agreements/%s/charges/%s", $agreementId, $chargeId));
   }
 
+  /**
+   * Get the refund URL.
+   *
+   * @param string $agreementId
+   *   Agreement id.
+   * @param string $chargeId
+   *   Charge id.
+   *
+   * @return string
+   *   URL.
+   */
   public function getRefundUrl(string $agreementId, string $chargeId):string {
-    return $this->generateUrl(sprintf("/recurring/v2/agreements/%s/charges/%s/refund", $agreementId, $chargeId));
+    return $this->generateUrl(sprintf("/recurring/v3/agreements/%s/charges/%s/refund", $agreementId, $chargeId));
   }
 
+  /**
+   * Get the capture URL.
+   *
+   * @param string $agreementId
+   *   Agreement id.
+   * @param string $chargeId
+   *   Charge id.
+   *
+   * @return string
+   *   URL.
+   */
   public function getCaptureUrl(string $agreementId, string $chargeId):string {
-    return $this->generateUrl(sprintf("/recurring/v2/agreements/%s/charges/%s/capture", $agreementId, $chargeId));
+    return $this->generateUrl(sprintf("/recurring/v3/agreements/%s/charges/%s/capture", $agreementId, $chargeId));
   }
 
-  private function initializeAttributes():void
-  {
+  /**
+   * Initialize the attributes function.
+   */
+  private function initializeAttributes():void {
     $rowData = $this->configFactory->getRawData();
 
-    foreach ($rowData as $attributeName => $value) {
-      $this->$attributeName = $value;
+    $this->msn = null;
+    $this->subscriptionKey = null;
+    $this->clientId = null;
+    $this->clientSecret = null;
+    $this->merchantAgreementUrl = null;
+    $this->testMode = null;
+
+    if (isset($rowData['msn'])) {
+      $this->msn = $rowData['msn'];
+    }
+    if (isset($rowData['subscription_key'])) {
+      $this->subscriptionKey = $rowData['subscription_key'];
+    }
+    if (isset($rowData['client_id'])) {
+      $this->clientId = $rowData['client_id'];
+    }
+    if (isset($rowData['client_secret'])) {
+      $this->clientSecret = $rowData['client_secret'];
+    }
+    if (isset($rowData['MerchantAgreementUrl'])) {
+      $this->merchantAgreementUrl = $rowData['MerchantAgreementUrl'];
+    }
+    if (isset($rowData['test_mode'])) {
+      $this->testMode = $rowData['test_mode'];
     }
 
+    $this->msn = null;
+    $this->subscriptionKey = null;
+    $this->clientId = null;
+    $this->clientSecret = null;
+
     if ($this->isTest()) {
-      $this->msn = $rowData['test_msn'];
-      $this->access_token = $rowData['test_access_token'];
-      $this->subscription_key = $rowData['test_subscription_key'];
-      $this->client_id = $rowData['test_client_id'];
-      $this->client_secret = $rowData['test_client_secret'];
+      if (isset($rowData['test_msn'])) {
+        $this->msn = $rowData['test_msn'];
+      }
+      if (isset($rowData['test_subscription_key'])) {
+        $this->subscriptionKey = $rowData['test_subscription_key'];
+      }
+      if (isset($rowData['test_client_id'])) {
+        $this->clientId = $rowData['test_client_id'];
+      }
+      if (isset($rowData['test_client_secret'])) {
+        $this->clientSecret = $rowData['test_client_secret'];
+      }
     }
   }
 
-  private function generateUrl(string $path):string
-  {
+  /**
+   * Generate the URL to the given path.
+   *
+   * @param string $path
+   *   The path to generate.
+   *
+   * @return string
+   *   The generated path.
+   */
+  private function generateUrl(string $path):string {
     return $this->getBaseUrl() . $path;
   }
 
-  private function isTest():bool
-  {
-    return boolval($this->test_mode);
+  /**
+   * Check is test.
+   *
+   * @return bool
+   *   True of false.
+   */
+  private function isTest():bool {
+    return boolval($this->testMode);
   }
+
 }
